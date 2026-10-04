@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To-Do Web App</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    body {
+      background-color: #f4f6f8;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+    .container {
+      width: 100%;
+      max-width: 800px;
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 25px;
+      color: #2c3e50;
+    }
+    .input-section {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+    .input-section input {
+      flex: 1;
+      padding: 12px 15px;
+      font-size: 16px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-section input:focus {
+      border-color: #3498db;
+    }
+    .input-section button {
+      padding: 12px 20px;
+      font-size: 16px;
+      background-color: #3498db;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .input-section button:hover {
+      background-color: #2980b9;
+    }
+    .lists-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 650px) {
+      .lists-container {
+        grid-template-columns: 1fr;
+      }
+    }
+    .list-box {
+      background: #fafafa;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #eee;
+    }
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 8px;
+    }
+    .list-header h2 {
+      font-size: 18px;
+      color: #34495e;
+    }
+    .badge {
+      background: #3498db;
+      color: #fff;
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 12px;
+    }
+    .empty-message {
+      text-align: center;
+      color: #888;
+      font-style: italic;
+      padding: 15px 0;
+    }
+    ul {
+      list-style: none;
+    }
+    li {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .task-content {
+      font-size: 15px;
+      word-break: break-word;
+    }
+    .task-timestamp {
+      font-size: 11px;
+      color: #888;
+    }
+    .task-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .task-actions button {
+      font-size: 12px;
+      padding: 5px 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn-complete { background-color: #2ecc71; color: white; }
+    .btn-complete:hover { background-color: #27ae60; }
+    .btn-edit { background-color: #f39c12; color: white; }
+    .btn-edit:hover { background-color: #d35400; }
+    .btn-delete { background-color: #e74c3c; color: white; }
+    .btn-delete:hover { background-color: #c0392b; }
+    .btn-save { background-color: #3498db; color: white; }
+    .edit-input {
+      width: 100%;
+      padding: 6px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>To-Do Web App</h1>
+  
+  <div class="input-section">
+    <input type="text" id="taskInput" placeholder="Enter a new task..." />
+    <button id="addTaskBtn">Add Task</button>
+  </div>
+
+  <div class="lists-container">
+    <!-- Pending Tasks -->
+    <div class="list-box">
+      <div class="list-header">
+        <h2>Pending Tasks</h2>
+        <span class="badge" id="pendingCount">0 pending</span>
+      </div>
+      <p class="empty-message" id="pendingEmpty">No pending tasks!</p>
+      <ul id="pendingList"></ul>
+    </div>
+
+    <!-- Completed Tasks -->
+    <div class="list-box">
+      <div class="list-header">
+        <h2>Completed Tasks</h2>
+        <span class="badge" id="completedCount">0 completed</span>
+      </div>
+      <p class="empty-message" id="completedEmpty">No completed tasks yet!</p>
+      <ul id="completedList"></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+  let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+  const taskInput = document.getElementById('taskInput');
+  const addTaskBtn = document.getElementById('addTaskBtn');
+  const pendingList = document.getElementById('pendingList');
+  const completedList = document.getElementById('completedList');
+  const pendingCount = document.getElementById('pendingCount');
+  const completedCount = document.getElementById('completedCount');
+  const pendingEmpty = document.getElementById('pendingEmpty');
+  const completedEmpty = document.getElementById('completedEmpty');
+
+  addTaskBtn.addEventListener('click', addTask);
+  taskInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') addTask();
+  });
+
+  function saveTasks() {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+  }
+
+  function addTask() {
+    const text = taskInput.value.trim();
+    if (!text) return;
+
+    const newTask = {
+      id: Date.now(),
+      text: text,
+      completed: false,
+      createdAt: new Date().toLocaleString(),
+      completedAt: null,
+      isEditing: false
+    };
+
+    tasks.push(newTask);
+    saveTasks();
+    render();
+    taskInput.value = '';
+  }
+
+  function toggleComplete(id) {
+    tasks = tasks.map(task => {
+      if (task.id === id) {
+        const isCompleted = !task.completed;
+        return {
+          ...task,
+          completed: isCompleted,
+          completedAt: isCompleted ? new Date().toLocaleString() : null
+        };
+      }
+      return task;
+    });
+    saveTasks();
+    render();
+  }
+
+  function deleteTask(id) {
+    tasks = tasks.filter(task => task.id !== id);
+    saveTasks();
+    render();
+  }
+
+  function toggleEdit(id) {
+    tasks = tasks.map(task => {
+      if (task.id === id) {
+        return { ...task, isEditing: !task.isEditing };
+      }
+      return task;
+    });
+    render();
+  }
+
+  function saveEdit(id, newText) {
+    const text = newText.trim();
+    if (!text) return;
+
+    tasks = tasks.map(task => {
+      if (task.id === id) {
+        return { ...task, text: text, isEditing: false };
+      }
+      return task;
+    });
+    saveTasks();
+    render();
+  }
+
+  function render() {
+    pendingList.innerHTML = '';
+    completedList.innerHTML = '';
+
+    const pendingTasks = tasks.filter(t => !t.completed);
+    const completedTasks = tasks.filter(t => t.completed);
+
+    pendingCount.textContent = `${pendingTasks.length} pending`;
+    completedCount.textContent = `${completedTasks.length} completed`;
+
+    pendingEmpty.style.display = pendingTasks.length === 0 ? 'block' : 'none';
+    completedEmpty.style.display = completedTasks.length === 0 ? 'block' : 'none';
+
+    pendingTasks.forEach(task => pendingList.appendChild(createTaskElement(task)));
+    completedTasks.forEach(task => completedList.appendChild(createTaskElement(task)));
+  }
+
+  function createTaskElement(task) {
+    const li = document.createElement('li');
+
+    if (task.isEditing) {
+      const editInput = document.createElement('input');
+      editInput.type = 'text';
+      editInput.className = 'edit-input';
+      editInput.value = task.text;
+
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'task-actions';
+
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'btn-save';
+      saveBtn.textContent = 'Save';
+      saveBtn.onclick = () => saveEdit(task.id, editInput.value);
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'btn-delete';
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.onclick = () => toggleEdit(task.id);
+
+      actionsDiv.appendChild(saveBtn);
+      actionsDiv.appendChild(cancelBtn);
+
+      li.appendChild(editInput);
+      li.appendChild(actionsDiv);
+      return li;
+    }
+
+    const textSpan = document.createElement('div');
+    textSpan.className = 'task-content';
+    textSpan.textContent = task.text;
+
+    const timeSpan = document.createElement('div');
+    timeSpan.className = 'task-timestamp';
+    timeSpan.textContent = task.completed
+      ? `Completed: ${task.completedAt}`
+      : `Added: ${task.createdAt}`;
+
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'task-actions';
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'btn-complete';
+    toggleBtn.textContent = task.completed ? 'Mark Pending' : 'Mark Complete';
+    toggleBtn.onclick = () => toggleComplete(task.id);
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn-edit';
+    editBtn.textContent = 'Edit';
+    editBtn.onclick = () => toggleEdit(task.id);
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-delete';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.onclick = () => deleteTask(task.id);
+
+    actionsDiv.appendChild(toggleBtn);
+    actionsDiv.appendChild(editBtn);
+    actionsDiv.appendChild(deleteBtn);
+
+    li.appendChild(textSpan);
+    li.appendChild(timeSpan);
+    li.appendChild(actionsDiv);
+
+    return li;
+  }
+
+  render();
+</script>
+
+</body>
+</html>
